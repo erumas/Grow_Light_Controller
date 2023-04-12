@@ -238,8 +238,9 @@ void formatTime(int hr, int min) {
 
 void loop() {  
   if(displayChange) {
-      updateDisplay(timeStr);
-      displayChange = false;
+    formatTime(hour(), minute());
+    updateDisplay(timeStr);
+    displayChange = false;
   }
 
   if(hasLightOffBeenSet) {

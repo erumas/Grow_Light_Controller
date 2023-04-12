@@ -49,9 +49,9 @@ String minStr;
 bool hasHourBeenSet = false;
 bool hasMinBeenSet = false;
 bool hasTimeBeenConfirmed = false;
-bool hasSessionLengthBeenSet = false;
+bool hasLightOnBeenSet = false;
 bool displayChange = true;
-bool hasAllBeenSet = false;
+bool hasLightOffBeenSet = false;
 int tempHour = 0;
 int tempMin = 0;
 String clock;
@@ -62,7 +62,9 @@ String clock;
 void setup() {
   Serial.begin(9600);
   // Setup interrupts and pins for rotary encoder
+  // IF LOW ENCODER IS TURNING
   attachInterrupt(digitalPinToInterrupt(CLK), handleEncoder, LOW);
+  // IF FALLINB BUTTON WAS PROBABLY* PRESSED
   attachInterrupt(digitalPinToInterrupt(SW), handleButton,  FALLING);
   pinMode(SW, INPUT_PULLUP);
   pinMode(DT, INPUT);
@@ -77,12 +79,11 @@ void setup() {
   matrixDisplay.print("Light :)");
   delay(2000);
 
-  //set time
+  //set time to arbitrary number just to initialize library
   setTime(0,0,0,0,0,0); 
-   
 
   updateDisplay(timeStr);
-  // Alarm.timerRepeat(15, Repeats);   
+
 }
 
 void updateDisplay (String toDisplay) {
@@ -91,6 +92,14 @@ void updateDisplay (String toDisplay) {
   matrixDisplay.print(toDisplay);
 }
 
+/*
+    The initial time setup works in three steps
+    1. set time: @hasTimeBeenConfirmed
+    2. set LIGHTS ON time @hasLightOnBeenSet
+    3. set LIGHTS OFF time @hasLightOffBeenSet
+    When initially powered on the user must set the time, and both alarms for lights
+    on and lights off. Then the program is running
+*/
 void handleButton() {
   if(digitalRead(SW) == LOW) {
     if(millis() - lastButtonInterrupt > 30) {
@@ -117,10 +126,9 @@ void handleButton() {
       } 
 
       // set on time
-      if(!hasSessionLengthBeenSet) {
-        // set start time/
+      if(!hasLightOnBeenSet) {
         Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
-        hasSessionLengthBeenSet = true;
+        hasLightOnBeenSet = true;
         
         resetTimeVals();
         formatTime(tempHour, tempMin);
@@ -129,10 +137,10 @@ void handleButton() {
       }
 
       // set off time
-      if(!hasAllBeenSet) {
+      if(!hasLightOffBeenSet) {
         hasTimeBeenConfirmed = true;
         Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
-        hasAllBeenSet = true;
+        hasLightOffBeenSet = true;
         displayChange = true;
         updateDisplay("Ready");
         return;
@@ -141,16 +149,19 @@ void handleButton() {
       return;
     }
   }
-  
+  //this is useful for debouncing, otherwise multiple values can be read from on 
+  // user interrupt
   lastButtonInterrupt = millis();
 }
 
 void turnOnLights() {
   Serial.println("turning on lights");
+  //TODO: map to analog OUTPUT pin to trigger on lights transistor   
 }
 
 void turnOffLights() {
   Serial.println("turning off lights");
+  //TODO: map to analog OUTPUT pin to trigger off lights transistor
 }
 
 void resetTimeVals() {
@@ -160,6 +171,17 @@ void resetTimeVals() {
   hasMinBeenSet = false;
 }
 
+
+/*
+    The encoder is attached to
+    Name | number | mapping 
+    CLK  | 3:     | set as interrupt and INPUT
+    DT   | 5:     | INPUT only
+    SW   | 2:     | set as interrupt and INPUT
+    This method only deals with:
+    1. determining rotation direction
+    2 .mapping those values to time 
+*/
 void handleEncoder(){
   if (millis()-lastRun>5){
     // Read the current state of CLK 
@@ -175,51 +197,42 @@ void handleEncoder(){
     }
   }
 
-  if(!hasHourBeenSet && currentValue != lastValue ) {
-    // 1. set time of day : hours first
-    if(currentValue > lastValue) {
-      tempHour ++;
-    } else {
-      tempHour --;
-    } 
+  if(currentValue != lastValue) {
+    if(!hasHourBeenSet  ) {
+        // 1. set hours first
+        if(currentValue > lastValue) {
+        tempHour ++;
+        } else {
+        tempHour --;
+        } 
 
-    if(tempHour > 23) {
-      tempHour = 0;
-    } else if (tempHour < 0) {
-      tempHour = 23;
-    }
-  } else if (!hasMinBeenSet && hasHourBeenSet && currentValue != lastValue) {
-    // 2. set time of day : minutes
-    if(currentValue > lastValue) {
-      tempMin ++;
-    } else {
-      tempMin --;
-    } 
-
-    if(tempMin > 59) {
-      tempMin = 0;
-    } else if (tempMin < 0) {
-      tempMin = 59;
+    } else if (!hasMinBeenSet && hasHourBeenSet ) {
+        // 2. set  minutes
+        if(currentValue > lastValue) {
+        tempMin ++;
+        } else {
+        tempMin --;
+        } 
     }
   }
+
   formatTime(tempHour, tempMin);
 }
 
 void formatTime(int hr, int min) {
-  if(tempHour < 10) {
+  if(hr < 10) {
     hourStr = '0' + String(hr);
   } else {
     hourStr = String(hr);
   }
   
-  if(tempMin < 10) {
+  if(min < 10) {
     minStr = '0' + String(min);
   } else {
     minStr = String(min);
   }
 
   timeStr =  hourStr + ':' + minStr;
-  
 
   lastRun=millis();
   lastValue = currentValue;
@@ -232,10 +245,10 @@ void loop() {
       displayChange = false;
   }
 
-  if(hasAllBeenSet) {
-    clock= String(hour()) + ":" + String(minute());
+  if(hasLightOffBeenSet) {
     Serial.print("time | ");
-    Serial.println(clock);
+    Serial.println(hour());
+    Serial.println(minute());
     formatTime(hour(), minute());
     updateDisplay(timeStr);
     // This has to be called, the alarms are triggered in the delay

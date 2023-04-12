@@ -15,8 +15,8 @@ int res = 0;
 
 // STATE MANAGEMENT FOR ROTARTY ENCODER
 int currentStateCLK;
-int counter=0;
-int oldCounter=0;
+int currentValue=0;
+int lastValue=0;
 String currentDir="";
 int buttonState = 0;
 unsigned long lastButtonInterrupt = 0;
@@ -45,9 +45,11 @@ String timeStr = "-- : --";
 ****************************/
 int hourOfDay = 0;
 int minOfDay = 0;
+String hourStr;
+String minStr;
 bool hasHourBeenSet = false;
 bool hasMinBeenSet = false;
-
+bool displayChange = true;
 /****************************
 ***** END CLOCK & TIMER *****
 ****************************/
@@ -86,8 +88,12 @@ void handleButton() {
   if(digitalRead(SW) == LOW) {
     if(millis() - lastButtonInterrupt > 30) {
       Serial.println("Button has really been pressed");
+      if(!hasHourBeenSet) {
+        hasHourBeenSet = true;
+      }
     }
   }
+  
   lastButtonInterrupt = millis();
 }
 
@@ -100,20 +106,22 @@ void handleEncoder(){
     // If the DT state is different than the CLK then encoder is rotating 
     // Counter clockwise so decrement
     if(digitalRead(DT) != currentStateCLK) {
-      counter --;
+      currentValue --;
       currentDir = "Counter clockwise";
+      
     } else {
       // Encoder is rotating Clockwise so increment
-      counter ++;
+      currentValue ++;
+      
       currentDir = "Clockwise";
     }
       Serial.print("Rotating: | ");
       Serial.print(currentDir);
-      Serial.print("Counter: | ");
-      Serial.println(counter);
+      Serial.print("CurrentValue: | ");
+      Serial.println(currentValue);
   }
 
-  if(!hasHourBeenSet) {
+  if(!hasHourBeenSet && currentValue != lastValue ) {
     // 1. set time of day : hours first
     if(currentValue > lastValue) {
       hourOfDay ++;
@@ -126,22 +134,49 @@ void handleEncoder(){
     } else if (hourOfDay < 0) {
       hourOfDay = 23;
     }
-  }
+  } else if (!hasMinBeenSet && hasHourBeenSet && currentValue != lastValue) {
+    // 1. set time of day : minutes
+    if(currentValue > lastValue) {
+      minOfDay ++;
+    } else {
+      minOfDay --;
+    } 
 
-  String hourStr = String(hourOfDay);
-  String minStr = String(minOfDay);
+    if(minOfDay > 59) {
+      minOfDay = 0;
+    } else if (minOfDay < 0) {
+      minOfDay = 59;
+    }
+  }
+  
+  if(hourOfDay < 10) {
+    hourStr = '0' + String(hourOfDay);
+  } else {
+    hourStr = String(hourOfDay);
+  }
+  
+  if(minOfDay < 10) {
+    minStr = '0' + String(minOfDay);
+  } else {
+    minStr = String(minOfDay);
+  }
+  
+  
   timeStr =  hourStr + ':' + minStr;  
   last_run=millis();
+  lastValue = currentValue;
+  displayChange = true;
 }
 
 void loop() {
   
-  if(counter != oldCounter) {
-    Serial.print("counter : ");
-    Serial.print(counter);
+  if(displayChange) {
+    Serial.print("currentValue : ");
+    Serial.print(currentValue);
     Serial.print(" direction : ");
     Serial.println(currentDir);  
     updateDisplay(timeStr);
+    displayChange = false;
   }
- oldCounter = counter;
+ 
 }

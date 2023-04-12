@@ -18,7 +18,7 @@ unsigned long lastRun=0;
 int currentStateCLK;
 int currentValue=0;
 int lastValue=0;
-String currentDir="";
+String currentDir=""; 
 int buttonState = 0;
 unsigned long lastButtonInterrupt = 0;
 /***********************
@@ -101,6 +101,8 @@ void updateDisplay (String toDisplay) {
     on and lights off. Then the program is running
 */
 void handleButton() {
+  // digitalRead(SW) == LOW even the interrupt to FALLING
+  // sometimes the signal drops while the encoder is rotating but it's NOT a button press
   if(digitalRead(SW) == LOW) {
     if(millis() - lastButtonInterrupt > 30) {
       Serial.println("Button has really been pressed");
@@ -197,6 +199,8 @@ void handleEncoder(){
     }
   }
 
+  // this check is easier to handle than tuning the 
+  // debounced readings from the encoder
   if(currentValue != lastValue) {
     if(!hasHourBeenSet  ) {
         // 1. set hours first
@@ -206,7 +210,7 @@ void handleEncoder(){
         tempHour --;
         } 
 
-    } else if (!hasMinBeenSet && hasHourBeenSet ) {
+    } else if (!hasMinBeenSet && hasHourBeenSet) {
         // 2. set  minutes
         if(currentValue > lastValue) {
         tempMin ++;
@@ -252,6 +256,6 @@ void loop() {
     formatTime(hour(), minute());
     updateDisplay(timeStr);
     // This has to be called, the alarms are triggered in the delay
-    Alarm.delay(60000); // wait one second between clock display
+    Alarm.delay(60000); // wait one minute between clock display
   }
 }

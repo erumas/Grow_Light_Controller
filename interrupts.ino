@@ -4,8 +4,9 @@
 #include <SPI.h>
 
 
+#include <TimeLib.h>
+#include <TimeAlarms.h>
 unsigned long last_run=0;
-int res = 0;
 /*************************
 ** BEGIN ROTARY ENCODER **
 *************************/
@@ -34,7 +35,7 @@ unsigned long lastButtonInterrupt = 0;
 #define CS_PIN    10
 #define MAX_DEVICES 4
 MD_Parola matrixDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
-String formattedTime = "00 :00";
+
 String timeStr = "-- : --";
 /***********************
 *****  END DISPLAY *****
@@ -43,13 +44,17 @@ String timeStr = "-- : --";
 /****************************
 **** BEGIN CLOCK & TIMER ****
 ****************************/
-int hourOfDay = 0;
-int minOfDay = 0;
 String hourStr;
 String minStr;
 bool hasHourBeenSet = false;
 bool hasMinBeenSet = false;
+bool hasTimeBeenConfirmed = false;
+bool hasSessionLengthBeenSet = false;
 bool displayChange = true;
+bool hasAllBeenSet = false;
+int tempHour = 0;
+int tempMin = 0;
+
 /****************************
 ***** END CLOCK & TIMER *****
 ****************************/
@@ -72,10 +77,16 @@ void setup() {
   matrixDisplay.print("Light :)");
   delay(2000);
 
-  matrixDisplay.displayClear();
-  matrixDisplay.displayScroll("Staring up controller!", PA_CENTER, PA_SCROLL_LEFT, 100);
+  //set time
+  setTime(8,29,0,1,1,11); 
+   
+  // setTime(8,29,0,1,1,11); // set time to Saturday 8:29:00am Jan 1 2011
 
-  updateDisplay(formattedTime);
+  // create the alarms, to trigger at specific times
+  Alarm.alarmRepeat(8,30,0, turnOnLights);  // 8:30am every day
+
+  updateDisplay(timeStr);
+  // Alarm.timerRepeat(15, Repeats);   
 }
 
 void updateDisplay (String toDisplay) {
@@ -90,13 +101,66 @@ void handleButton() {
       Serial.println("Button has really been pressed");
       if(!hasHourBeenSet) {
         hasHourBeenSet = true;
+        return;
       }
+
+      if(!hasMinBeenSet) {
+        hasMinBeenSet = true;
+        return;
+      }
+      
+      // Everything has been confirmed, 
+      // save values and reset to move onto next step
+      if(!hasTimeBeenConfirmed) {
+        setTime(tempHour,tempMin,0,1,1,11);         
+        hasTimeBeenConfirmed = true;
+        resetTimeVals();
+        formatTime();
+        displayChange = true;
+        return;
+      } 
+
+      if(!hasSessionLengthBeenSet) {
+        // set start time/
+        Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
+        hasSessionLengthBeenSet = true;
+        
+        resetTimeVals();
+        formatTime();
+        displayChange = true;
+        return;
+      }
+
+      if(!hasAllBeenSet) {
+        hasTimeBeenConfirmed = true;
+        startHour = tempHour;
+        startMin = tempMin;
+        hasAllBeenSet = true;
+        displayChange = true;
+        updateDisplay("Ready");
+        return;
+      }
+      return;
     }
   }
   
   lastButtonInterrupt = millis();
 }
 
+void turnOnLights() {
+  Serial.println("turning on lights");
+}
+
+void turnOffLights() {
+  Serial.println("turning off lights");
+}
+
+void resetTimeVals() {
+  tempHour = 0;
+  tempMin = 0;
+  hasHourBeenSet = false;
+  hasMinBeenSet = false;
+}
 
 void handleEncoder(){
   if (millis()-last_run>5){
@@ -107,76 +171,87 @@ void handleEncoder(){
     // Counter clockwise so decrement
     if(digitalRead(DT) != currentStateCLK) {
       currentValue --;
-      currentDir = "Counter clockwise";
-      
     } else {
       // Encoder is rotating Clockwise so increment
       currentValue ++;
-      
-      currentDir = "Clockwise";
     }
-      Serial.print("Rotating: | ");
-      Serial.print(currentDir);
-      Serial.print("CurrentValue: | ");
-      Serial.println(currentValue);
   }
 
   if(!hasHourBeenSet && currentValue != lastValue ) {
     // 1. set time of day : hours first
     if(currentValue > lastValue) {
-      hourOfDay ++;
+      tempHour ++;
     } else {
-      hourOfDay --;
+      tempHour --;
     } 
 
-    if(hourOfDay > 23) {
-      hourOfDay = 0;
-    } else if (hourOfDay < 0) {
-      hourOfDay = 23;
+    if(tempHour > 23) {
+      tempHour = 0;
+    } else if (tempHour < 0) {
+      tempHour = 23;
     }
   } else if (!hasMinBeenSet && hasHourBeenSet && currentValue != lastValue) {
-    // 1. set time of day : minutes
+    // 2. set time of day : minutes
     if(currentValue > lastValue) {
-      minOfDay ++;
+      tempMin ++;
     } else {
-      minOfDay --;
+      tempMin --;
     } 
 
-    if(minOfDay > 59) {
-      minOfDay = 0;
-    } else if (minOfDay < 0) {
-      minOfDay = 59;
+    if(tempMin > 59) {
+      tempMin = 0;
+    } else if (tempMin < 0) {
+      tempMin = 59;
     }
   }
-  
-  if(hourOfDay < 10) {
-    hourStr = '0' + String(hourOfDay);
+  formatTime();
+}
+
+void formatTime() {
+  if(tempHour < 10) {
+    hourStr = '0' + String(tempHour);
   } else {
-    hourStr = String(hourOfDay);
+    hourStr = String(tempHour);
   }
   
-  if(minOfDay < 10) {
-    minStr = '0' + String(minOfDay);
+  if(tempMin < 10) {
+    minStr = '0' + String(tempMin);
   } else {
-    minStr = String(minOfDay);
+    minStr = String(tempMin);
   }
+
+  timeStr =  hourStr + ':' + minStr;
   
-  
-  timeStr =  hourStr + ':' + minStr;  
+
   last_run=millis();
   lastValue = currentValue;
   displayChange = true;
 }
 
 void loop() {
+  // Serial.println("in loop");
+  // Serial.print(hour());
+  // Serial.println(minute());
   
+  String clock= String(hour()) + ":" + String(minute());
   if(displayChange) {
-    Serial.print("currentValue : ");
-    Serial.print(currentValue);
-    Serial.print(" direction : ");
-    Serial.println(currentDir);  
-    updateDisplay(timeStr);
+    // Serial.print("currentValue : ");
+    // Serial.print(currentValue);
+    // Serial.print(" direction : ");
+    // Serial.println(currentDir);
+    if(hasAllBeenSet){
+      
+      updateDisplay(clock);
+    } else {
+      updateDisplay(timeStr);
+    }
+
     displayChange = false;
   }
- 
+  Serial.print("time | ");
+  Serial.print(hour() + ":");
+  Serial.println(minute());
+  updateDisplay(clock);
+  // This has to be called, the alarms are triggered in the delay
+  Alarm.delay(500); // wait one second between clock display
 }

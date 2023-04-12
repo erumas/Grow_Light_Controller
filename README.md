@@ -1,7 +1,7 @@
 # Grow_Light_Controller
 Grow Light Controller for Arduino
 
-## There are two main goals here with some constraints
+## There are 4 main goals here with some constraints
 ### Goals:
 1. to run a high voltage light array controller by an atmega238 P microcontroller 
 2. Read rotary encoder and translate signals into useable data

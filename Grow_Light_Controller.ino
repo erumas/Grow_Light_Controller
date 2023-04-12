@@ -100,55 +100,49 @@ void updateDisplay (String toDisplay) {
     on and lights off. Then the program is running
 */
 void handleButton() {
+  if(millis() - lastButtonInterrupt < 30)
+    return;
   // digitalRead(SW) == LOW even the interrupt to FALLING
   // sometimes the signal drops while the encoder is rotating but it's NOT a button press
   if(digitalRead(SW) == LOW) {
-    if(millis() - lastButtonInterrupt > 30) {
-      Serial.println("Button has really been pressed");
-      if(!hasHourBeenSet) {
-        hasHourBeenSet = true;
-        return;
-      }
-
-      if(!hasMinBeenSet) {
-        hasMinBeenSet = true;
-        return;
-      }
-      
-      // Hours and mins has been confirmed, 
-      // save values and reset to move onto next step
-      if(!hasTimeBeenConfirmed) {
-        setTime(tempHour,tempMin,0,1,1,11);         
-        hasTimeBeenConfirmed = true;
-        resetTimeVals();
-        formatTime(tempHour, tempMin);
-        displayChange = true;
-        return;
-      } 
-
-      // set on time
-      if(!hasLightOnBeenSet) {
-        Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
-        hasLightOnBeenSet = true;
-        
-        resetTimeVals();
-        formatTime(tempHour, tempMin);
-        displayChange = true;
-        return;
-      }
-
-      // set off time
-      if(!hasLightOffBeenSet) {
-        hasTimeBeenConfirmed = true;
-        Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
-        hasLightOffBeenSet = true;
-        displayChange = true;
-        updateDisplay("Ready");
-        return;
-      }
-
+    Serial.println("Button has really been pressed");
+    if(!hasHourBeenSet) {
+      hasHourBeenSet = true;
       return;
     }
+
+    if(!hasMinBeenSet) {
+      hasMinBeenSet = true;
+      return;
+    }
+    
+    // Hours and mins has been confirmed, 
+    // save values and reset to move onto next step
+    if(!hasTimeBeenConfirmed) {
+      setTime(tempHour,tempMin,0,1,1,11);         
+      hasTimeBeenConfirmed = true;
+      resetTimeVals();
+      return;
+    } 
+
+    // set on time
+    if(!hasLightOnBeenSet) {
+      Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
+      hasLightOnBeenSet = true;
+      resetTimeVals();
+      return;
+    }
+
+    // set off time
+    if(!hasLightOffBeenSet) {
+      hasTimeBeenConfirmed = true;
+      Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
+      hasLightOffBeenSet = true;
+      displayChange = true;
+      updateDisplay("Ready");
+      return;
+    }
+    return;
   }
   //this is useful for debouncing, otherwise multiple values can be read from on 
   // user interrupt
@@ -166,6 +160,8 @@ void turnOffLights() {
 }
 
 void resetTimeVals() {
+  formatTime(tempHour, tempMin);
+  displayChange = true;
   tempHour = 0;
   tempMin = 0;
   hasHourBeenSet = false;
@@ -182,25 +178,26 @@ void resetTimeVals() {
     1. determining rotation direction
     2 .mapping those values to time 
 */
-void handleEncoder(){
-  if (millis()-lastRun>5){
-    // Read the current state of CLK 
-    currentStateCLK = digitalRead(CLK);
+void handleEncoder() {
+  if(millis() - lastRun < 10)
+    return;
 
-    // If the DT state is different than the CLK then encoder is rotating 
-    // Counter clockwise so decrement
-    if(digitalRead(DT) != currentStateCLK) {
-      currentValue --;
-    } else {
-      // Encoder is rotating Clockwise so increment
-      currentValue ++;
-    }
+  // Read the current state of CLK 
+  currentStateCLK = digitalRead(CLK);
+
+  // If the DT state is different than the CLK then encoder is rotating 
+  // Counter clockwise so decrement
+  if(digitalRead(DT) != currentStateCLK) {
+    currentValue --;
+  } else {
+    // Encoder is rotating Clockwise so increment
+    currentValue ++;
   }
 
   // this check is easier to handle than tuning the 
   // debounced readings from the encoder
   if(currentValue != lastValue) {
-    if(!hasHourBeenSet  ) {
+    if(!hasHourBeenSet) {
       // 1. set hours first
       if(currentValue > lastValue) {
         tempHour ++;
@@ -216,6 +213,7 @@ void handleEncoder(){
       } 
     }
   formatTime(tempHour, tempMin);
+  }
 }
 
 void formatTime(int hr, int min) {

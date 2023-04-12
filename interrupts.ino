@@ -54,7 +54,7 @@ bool displayChange = true;
 bool hasAllBeenSet = false;
 int tempHour = 0;
 int tempMin = 0;
-
+String clock;
 /****************************
 ***** END CLOCK & TIMER *****
 ****************************/
@@ -83,7 +83,7 @@ void setup() {
   // setTime(8,29,0,1,1,11); // set time to Saturday 8:29:00am Jan 1 2011
 
   // create the alarms, to trigger at specific times
-  Alarm.alarmRepeat(8,30,0, turnOnLights);  // 8:30am every day
+  // Alarm.alarmRepeat(8,30,0, turnOnLights);  // 8:30am every day
 
   updateDisplay(timeStr);
   // Alarm.timerRepeat(15, Repeats);   
@@ -120,6 +120,7 @@ void handleButton() {
         return;
       } 
 
+      // set on time
       if(!hasSessionLengthBeenSet) {
         // set start time/
         Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
@@ -131,15 +132,16 @@ void handleButton() {
         return;
       }
 
+      // set off time
       if(!hasAllBeenSet) {
         hasTimeBeenConfirmed = true;
-        startHour = tempHour;
-        startMin = tempMin;
+        Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
         hasAllBeenSet = true;
         displayChange = true;
         updateDisplay("Ready");
         return;
       }
+
       return;
     }
   }
@@ -233,25 +235,26 @@ void loop() {
   // Serial.print(hour());
   // Serial.println(minute());
   
-  String clock= String(hour()) + ":" + String(minute());
+  
   if(displayChange) {
     // Serial.print("currentValue : ");
     // Serial.print(currentValue);
     // Serial.print(" direction : ");
     // Serial.println(currentDir);
-    if(hasAllBeenSet){
-      
-      updateDisplay(clock);
-    } else {
       updateDisplay(timeStr);
-    }
-
-    displayChange = false;
+      displayChange = false;
   }
-  Serial.print("time | ");
-  Serial.print(hour() + ":");
-  Serial.println(minute());
-  updateDisplay(clock);
-  // This has to be called, the alarms are triggered in the delay
-  Alarm.delay(500); // wait one second between clock display
+
+    
+  
+  if(hasAllBeenSet) {
+    clock= String(hour()) + ":" + String(minute());
+    Serial.print("time | ");
+
+    Serial.println(clock);
+    updateDisplay("^" + clock);
+    // This has to be called, the alarms are triggered in the delay
+    Alarm.delay(500); // wait one second between clock display
+  }
+
 }

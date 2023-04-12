@@ -6,7 +6,7 @@
 
 #include <TimeLib.h>
 #include <TimeAlarms.h>
-unsigned long last_run=0;
+unsigned long lastRun=0;
 /*************************
 ** BEGIN ROTARY ENCODER **
 *************************/
@@ -161,7 +161,7 @@ void resetTimeVals() {
 }
 
 void handleEncoder(){
-  if (millis()-last_run>5){
+  if (millis()-lastRun>5){
     // Read the current state of CLK 
     currentStateCLK = digitalRead(CLK);
 
@@ -221,7 +221,7 @@ void formatTime(int hr, int min) {
   timeStr =  hourStr + ':' + minStr;
   
 
-  last_run=millis();
+  lastRun=millis();
   lastValue = currentValue;
   displayChange = true;
 }

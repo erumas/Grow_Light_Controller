@@ -6,7 +6,7 @@
 
 #include <TimeLib.h>
 #include <TimeAlarms.h>
-unsigned long lastRun=0;
+
 /*************************
 ** BEGIN ROTARY ENCODER **
 *************************/
@@ -19,8 +19,8 @@ int currentStateCLK;
 int currentValue=0;
 int lastValue=0;
 String currentDir=""; 
-int buttonState = 0;
 unsigned long lastButtonInterrupt = 0;
+unsigned long lastRun=0;
 /***********************
 ** END ROTARY ENCODER **
 ************************/
@@ -83,7 +83,6 @@ void setup() {
   setTime(0,0,0,0,0,0); 
 
   updateDisplay(timeStr);
-
 }
 
 void updateDisplay (String toDisplay) {
@@ -116,7 +115,7 @@ void handleButton() {
         return;
       }
       
-      // Everything has been confirmed, 
+      // Hours and mins has been confirmed, 
       // save values and reset to move onto next step
       if(!hasTimeBeenConfirmed) {
         setTime(tempHour,tempMin,0,1,1,11);         
@@ -173,7 +172,6 @@ void resetTimeVals() {
   hasMinBeenSet = false;
 }
 
-
 /*
     The encoder is attached to
     Name | number | mapping 
@@ -203,23 +201,21 @@ void handleEncoder(){
   // debounced readings from the encoder
   if(currentValue != lastValue) {
     if(!hasHourBeenSet  ) {
-        // 1. set hours first
-        if(currentValue > lastValue) {
+      // 1. set hours first
+      if(currentValue > lastValue) {
         tempHour ++;
-        } else {
+      } else {
         tempHour --;
-        } 
-
+      } 
     } else if (!hasMinBeenSet && hasHourBeenSet) {
         // 2. set  minutes
-        if(currentValue > lastValue) {
+      if(currentValue > lastValue) {
         tempMin ++;
-        } else {
+      } else {
         tempMin --;
-        } 
+      } 
     }
   }
-
   formatTime(tempHour, tempMin);
 }
 

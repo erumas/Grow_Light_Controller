@@ -263,11 +263,8 @@ void handleEncoder() {
 
 void loop() {  
   if(displayChange) {
-    formatTime(hour(), minute());
-    Serial.print("about to display time | ");
-    Serial.print(timeStr);
-    updateDisplay(timeStr);
-    displayChange = false;
+      updateDisplay(timeStr);
+      displayChange = false;
   }
 
   if(hasLightOffBeenSet) {

@@ -1,4 +1,4 @@
-# Grow_Light_Controller
+# -Grow_Light_Controller
 Grow Light Controller for Arduino
 
 ## There are 4 main goals here with some constraints

@@ -25,6 +25,15 @@ unsigned long lastRun=0;
 ** END ROTARY ENCODER **
 ************************/
 
+/*************************
+** BEGIN LED INDICATORS **
+*************************/
+// #define 
+/*************************
+** END LED INDICATORS **
+*************************/
+
+
 /***********************
 ****  BEGIN DISPLAY ****
 ************************/
@@ -55,6 +64,8 @@ bool hasLightOffBeenSet = false;
 int tempHour = 0;
 int tempMin = 0;
 String clock;
+
+// enum {noTime, timeOfDaySet, alarmOnSet, alarmOffSet} = 
 /****************************
 ***** END CLOCK & TIMER *****
 ****************************/
@@ -104,10 +115,51 @@ void handleButton() {
     return;
 
   Serial.println("Button has really been pressed");
+
   if(!hasHourBeenSet) {
     hasHourBeenSet = true;
+    Serial.println('returning from horus');
     return;
   }
+
+  if(!hasMinBeenSet) {
+    Serial.println('returning from minutes');
+    hasMinBeenSet = true;
+    return;
+  }
+
+  Serial.println("About to confirm first state");
+  // Hours and mins has been confirmed, 
+  // save values and reset to move onto next step
+  if(!hasTimeBeenConfirmed) {
+    Serial.println('confirming state 1');
+    setTime(tempHour,tempMin,0,1,1,11);         
+    hasTimeBeenConfirmed = true;
+    resetTimeVals();
+    return;
+  } 
+
+  // set on time
+  if(!hasLightOnBeenSet) {
+    Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
+    hasLightOnBeenSet = true;
+    Serial.println('confirming state 2');
+    resetTimeVals();
+    return;
+  }
+
+  // set off time
+  if(!hasLightOffBeenSet) {
+    hasTimeBeenConfirmed = true;
+    Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
+    hasLightOffBeenSet = true;
+    displayChange = true;
+    Serial.println('confirming state 3');
+    updateDisplay("Ready");
+    return;
+  }
+    return;
+
 
   if(!hasMinBeenSet) {
     hasMinBeenSet = true;
@@ -173,6 +225,27 @@ void resetTimeVals() {
   hasMinBeenSet = false;
 }
 
+void formatTime(int hr, int min) {
+  if(hr < 10) {
+    hourStr = '0' + String(hr);
+  } else {
+    hourStr = String(hr);
+  }
+  
+  if(min < 10) {
+    minStr = '0' + String(min);
+  } else {
+    minStr = String(min);
+  }
+
+  timeStr =  hourStr + ':' + minStr;
+
+  lastRun=millis();
+  lastValue = currentValue;
+  displayChange = true;
+}
+
+
 /*
     The encoder is attached to
     Name | number | mapping 
@@ -194,9 +267,11 @@ void handleEncoder() {
   // Counter clockwise so decrement
   if(digitalRead(DT) != currentStateCLK) {
     currentValue --;
+    Serial.println("rotating counter clockwise");
   } else {
     // Encoder is rotating Clockwise so increment
     currentValue ++;
+    Serial.println("rotating clockwise");
   }
 
   // this check is easier to handle than tuning the 
@@ -217,35 +292,16 @@ void handleEncoder() {
         tempMin --;
       } 
     }
+  }
   formatTime(tempHour, tempMin);
-  }
 }
 
-void formatTime(int hr, int min) {
-  if(hr < 10) {
-    hourStr = '0' + String(hr);
-  } else {
-    hourStr = String(hr);
-  }
-  
-  if(min < 10) {
-    minStr = '0' + String(min);
-  } else {
-    minStr = String(min);
-  }
 
-  timeStr =  hourStr + ':' + minStr;
-
-  lastRun=millis();
-  lastValue = currentValue;
-  displayChange = true;
-}
 
 void loop() {  
   if(displayChange) {
-    formatTime(hour(), minute());
-    updateDisplay(timeStr);
-    displayChange = false;
+      updateDisplay(timeStr);
+      displayChange = false;
   }
 
   if(hasLightOffBeenSet) {

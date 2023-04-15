@@ -111,62 +111,59 @@ void updateDisplay (String toDisplay) {
     on and lights off. Then the program is running
 */
 void handleButton() {
-  if(millis() - lastButtonInterrupt < 30)
+  if(debounce())
     return;
-  // digitalRead(SW) == LOW even the interrupt to FALLING
-  // sometimes the signal drops while the encoder is rotating but it's NOT a button press
-  if(digitalRead(SW) == LOW) {
-    Serial.println("Button has really been pressed");
-    Serial.print('hasHourBeenSet | ');
-    Serial.println(hasHourBeenSet);
-    Serial.println('was set :/');
-    if(!hasHourBeenSet) {
-      hasHourBeenSet = true;
-      Serial.println('returning from horus');
-      return;
-    }
 
-    if(!hasMinBeenSet) {
-      Serial.println('returning from minutes');
-      hasMinBeenSet = true;
-      return;
-    }
-
-    Serial.println("About to confirm first state");
-    // Hours and mins has been confirmed, 
-    // save values and reset to move onto next step
-    if(!hasTimeBeenConfirmed) {
-      Serial.println('confirming state 1');
-      setTime(tempHour,tempMin,0,1,1,11);         
-      hasTimeBeenConfirmed = true;
-      resetTimeVals();
-      return;
-    } 
-
-    // set on time
-    if(!hasLightOnBeenSet) {
-      Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
-      hasLightOnBeenSet = true;
-      Serial.println('confirming state 2');
-      resetTimeVals();
-      return;
-    }
-
-    // set off time
-    if(!hasLightOffBeenSet) {
-      hasTimeBeenConfirmed = true;
-      Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
-      hasLightOffBeenSet = true;
-      displayChange = true;
-      Serial.println('confirming state 3');
-      updateDisplay("Ready");
-      return;
-    }
+  if(!hasHourBeenSet) {
+    hasHourBeenSet = true;
+    Serial.println('returning from horus');
     return;
   }
-  //this is useful for debouncing, otherwise multiple values can be read from on 
-  // user interrupt
-  lastButtonInterrupt = millis();
+
+  if(!hasMinBeenSet) {
+    Serial.println('returning from minutes');
+    hasMinBeenSet = true;
+    return;
+  }
+  
+  // Hours and mins has been confirmed, 
+  // save values and reset to move onto next step
+  if(!hasTimeBeenConfirmed) {
+    setTime(tempHour,tempMin,0,1,1,11);         
+    hasTimeBeenConfirmed = true;
+    resetTimeVals();
+    return;
+  } 
+
+  // set on time
+  if(!hasLightOnBeenSet) {
+    Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
+    hasLightOnBeenSet = true;
+    resetTimeVals();
+    return;
+  }
+
+  // set off time
+  if(!hasLightOffBeenSet) {
+    hasTimeBeenConfirmed = true;
+    Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
+    hasLightOffBeenSet = true;
+    displayChange = true;
+    updateDisplay("Ready");
+    return;
+  }
+}
+
+bool debounce() {
+  if (millis() - lastButtonInterrupt < 30) return true;
+  // digitalRead(SW) == LOW even the interrupt to FALLING
+  // sometimes the signal drops while the encoder is rotating but it's NOT a button press
+  if (digitalRead(SW) != LOW) {
+    // this is useful for debouncing, otherwise multiple values can be read from on user interrupt
+    lastButtonInterrupt = millis();
+    return true;
+  }
+  return false;
 }
 
 void turnOnLights() {
@@ -285,8 +282,8 @@ void handleEncoder() {
 
 void loop() {  
   if(displayChange) {
-      updateDisplay(timeStr);
-      displayChange = false;
+    updateDisplay(timeStr);
+    displayChange = false;
   }
 
   if(hasLightOffBeenSet) {

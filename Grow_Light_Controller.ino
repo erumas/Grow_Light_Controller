@@ -234,6 +234,7 @@ void handleEncoder() {
         tempMin --;
       } 
     }
+  }
   formatTime(tempHour, tempMin);
   }
 }

@@ -25,6 +25,15 @@ unsigned long lastRun=0;
 ** END ROTARY ENCODER **
 ************************/
 
+/*************************
+** BEGIN LED INDICATORS **
+*************************/
+// #define 
+/*************************
+** END LED INDICATORS **
+*************************/
+
+
 /***********************
 ****  BEGIN DISPLAY ****
 ************************/
@@ -55,6 +64,8 @@ bool hasLightOffBeenSet = false;
 int tempHour = 0;
 int tempMin = 0;
 String clock;
+
+// enum {noTime, timeOfDaySet, alarmOnSet, alarmOffSet} = 
 /****************************
 ***** END CLOCK & TIMER *****
 ****************************/
@@ -106,19 +117,26 @@ void handleButton() {
   // sometimes the signal drops while the encoder is rotating but it's NOT a button press
   if(digitalRead(SW) == LOW) {
     Serial.println("Button has really been pressed");
+    Serial.print('hasHourBeenSet | ');
+    Serial.println(hasHourBeenSet);
+    Serial.println('was set :/');
     if(!hasHourBeenSet) {
       hasHourBeenSet = true;
+      Serial.println('returning from horus');
       return;
     }
 
     if(!hasMinBeenSet) {
+      Serial.println('returning from minutes');
       hasMinBeenSet = true;
       return;
     }
-    
+
+    Serial.println("About to confirm first state");
     // Hours and mins has been confirmed, 
     // save values and reset to move onto next step
     if(!hasTimeBeenConfirmed) {
+      Serial.println('confirming state 1');
       setTime(tempHour,tempMin,0,1,1,11);         
       hasTimeBeenConfirmed = true;
       resetTimeVals();
@@ -129,6 +147,7 @@ void handleButton() {
     if(!hasLightOnBeenSet) {
       Alarm.alarmRepeat(tempHour, tempMin, 0, turnOnLights);
       hasLightOnBeenSet = true;
+      Serial.println('confirming state 2');
       resetTimeVals();
       return;
     }
@@ -139,6 +158,7 @@ void handleButton() {
       Alarm.alarmRepeat(tempHour, tempMin, 0, turnOffLights);
       hasLightOffBeenSet = true;
       displayChange = true;
+      Serial.println('confirming state 3');
       updateDisplay("Ready");
       return;
     }
@@ -189,9 +209,11 @@ void handleEncoder() {
   // Counter clockwise so decrement
   if(digitalRead(DT) != currentStateCLK) {
     currentValue --;
+    Serial.println("rotating counter clockwise");
   } else {
     // Encoder is rotating Clockwise so increment
     currentValue ++;
+    Serial.println("rotating clockwise");
   }
 
   // this check is easier to handle than tuning the 
@@ -239,6 +261,8 @@ void formatTime(int hr, int min) {
 void loop() {  
   if(displayChange) {
     formatTime(hour(), minute());
+    Serial.print("about to display time | ");
+    Serial.print(timeStr);
     updateDisplay(timeStr);
     displayChange = false;
   }

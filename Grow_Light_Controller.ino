@@ -205,9 +205,40 @@ void formatTime(int hr, int min) {
 
   lastRun=millis();
   lastValue = currentValue;
-  displayChange = true;
+  // displayChange = true;
 }
 
+void setHour(bool increment) {
+  if(increment) {
+    if(tempHour < 23) {
+      tempHour ++;
+    } else {
+      tempHour = 0;
+    }
+  } else {
+    if(tempHour > 0) {
+      tempHour --;
+    } else {
+      tempHour = 23;
+    }
+  }
+}
+
+void setMin(bool increment) {
+  if(increment) {
+    if(tempMin < 59) {
+      tempMin ++;
+    } else {
+      tempMin = 0;
+    }
+  } else {
+    if(tempMin > 0) {
+      tempMin --;
+    } else {
+      tempMin = 59;
+    }
+  }
+}
 
 /*
     The encoder is attached to
@@ -239,24 +270,15 @@ void handleEncoder() {
 
   // this check is easier to handle than tuning the 
   // debounced readings from the encoder
-  if(currentValue != lastValue) {
+
     if(!hasHourBeenSet) {
-      // 1. set hours first
-      if(currentValue > lastValue) {
-        tempHour ++;
-      } else {
-        tempHour --;
-      } 
+      setHour(currentValue > lastValue);
     } else if (!hasMinBeenSet && hasHourBeenSet) {
-        // 2. set  minutes
-      if(currentValue > lastValue) {
-        tempMin ++;
-      } else {
-        tempMin --;
-      } 
+      setMin(currentValue > lastValue);
     }
-  }
+
   formatTime(tempHour, tempMin);
+  displayChange = true;
 }
 
 

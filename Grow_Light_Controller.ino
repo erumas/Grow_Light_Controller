@@ -243,7 +243,6 @@ void formatTime(int hr, int min) {
 
 void loop() {  
   if(displayChange) {
-    formatTime(hour(), minute());
     updateDisplay(timeStr);
     displayChange = false;
   }

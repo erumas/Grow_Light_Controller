@@ -188,6 +188,27 @@ void resetTimeVals() {
   hasMinBeenSet = false;
 }
 
+void formatTime(int hr, int min) {
+  if(hr < 10) {
+    hourStr = '0' + String(hr);
+  } else {
+    hourStr = String(hr);
+  }
+  
+  if(min < 10) {
+    minStr = '0' + String(min);
+  } else {
+    minStr = String(min);
+  }
+
+  timeStr =  hourStr + ':' + minStr;
+
+  lastRun=millis();
+  lastValue = currentValue;
+  displayChange = true;
+}
+
+
 /*
     The encoder is attached to
     Name | number | mapping 
@@ -236,28 +257,9 @@ void handleEncoder() {
     }
   }
   formatTime(tempHour, tempMin);
-  }
 }
 
-void formatTime(int hr, int min) {
-  if(hr < 10) {
-    hourStr = '0' + String(hr);
-  } else {
-    hourStr = String(hr);
-  }
-  
-  if(min < 10) {
-    minStr = '0' + String(min);
-  } else {
-    minStr = String(min);
-  }
 
-  timeStr =  hourStr + ':' + minStr;
-
-  lastRun=millis();
-  lastValue = currentValue;
-  displayChange = true;
-}
 
 void loop() {  
   if(displayChange) {

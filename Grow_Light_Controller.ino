@@ -172,6 +172,26 @@ void resetTimeVals() {
   hasMinBeenSet = false;
 }
 
+void formatTime(int hr, int min) {
+  if(hr < 10) {
+    hourStr = '0' + String(hr);
+  } else {
+    hourStr = String(hr);
+  }
+  
+  if(min < 10) {
+    minStr = '0' + String(min);
+  } else {
+    minStr = String(min);
+  }
+
+  timeStr =  hourStr + ':' + minStr;
+
+  lastRun=millis();
+  lastValue = currentValue;
+  displayChange = true;
+}
+
 /*
     The encoder is attached to
     Name | number | mapping 
@@ -182,7 +202,7 @@ void resetTimeVals() {
     1. determining rotation direction
     2 .mapping those values to time 
 */
-void handleEncoder(){
+void handleEncoder() {
   if (millis()-lastRun>5){
     // Read the current state of CLK 
     currentStateCLK = digitalRead(CLK);
@@ -215,28 +235,11 @@ void handleEncoder(){
         tempMin --;
       } 
     }
-  formatTime(tempHour, tempMin);
+    formatTime(tempHour, tempMin);
+  }
 }
 
-void formatTime(int hr, int min) {
-  if(hr < 10) {
-    hourStr = '0' + String(hr);
-  } else {
-    hourStr = String(hr);
-  }
-  
-  if(min < 10) {
-    minStr = '0' + String(min);
-  } else {
-    minStr = String(min);
-  }
 
-  timeStr =  hourStr + ':' + minStr;
-
-  lastRun=millis();
-  lastValue = currentValue;
-  displayChange = true;
-}
 
 void loop() {  
   if(displayChange) {
